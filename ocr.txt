@@ -1,0 +1,127 @@
+from PIL import Image, ImageDraw, ImageFilter
+from pytesseract import image_to_string
+import pytesseract
+import cv2
+
+def apply_blur(image, radius):
+    # 이미지에 블러 필터 적용
+    blurred_image = image.filter(ImageFilter.GaussianBlur(radius))
+    return blurred_image
+
+def add_border(image, border_size, border_color):
+    width, height = image.size
+    new_width = width + 2 * border_size
+    new_height = height + 2 * border_size
+    
+    new_image = Image.new("RGB", (new_width, new_height), border_color)
+    new_image.paste(image, (border_size, border_size))
+    
+    return new_image
+
+def extract_and_rotate_images(input_path, output_paths_and_coords, blur_strengths):
+    # 원본 이미지 열기
+    image = Image.open(input_path)
+
+    for output_path, (left, upper, right, lower) in output_paths_and_coords.items():
+        # 주어진 좌표를 기준으로 이미지를 잘라냄
+        cropped_image = image.crop((left, upper, right, lower))
+
+        # 이미지에 블러 필터 적용
+        blur_radius = blur_strengths.get(output_path, 1.5)  # 기본값은 1.5
+        blurred_image = apply_blur(cropped_image, radius=blur_radius)
+        
+        # 이미지에 얇은 테두리 추가
+        bordered_image = add_border(blurred_image, border_size=3, border_color=(255, 255, 255))
+
+        # 이미지를 시계방향으로 90도 회전
+        rotated_image = bordered_image.rotate(-90, expand=True)
+
+        # 회전된 이미지를 저장
+        rotated_image.save(output_path)
+
+        # 이미지에서 텍스트 추출하여 텍스트 파일로 저장
+        text = image_to_string(rotated_image, lang="kor")
+        with open(f"sample_{output_path.split('.')[0]}.txt", "w") as f:
+            f.write(text)
+
+if __name__ == "__main__":
+    input_image_path = "C:/test/sample5.jpeg"
+
+    output_paths_and_coords = {
+        "output_image_name.jpg": (590, 400, 660, 750),  # 병원이름 
+        "output_image_day.jpg": (600, 2000, 670, 2330),  # 날짜 l, u, r, l 두번째걸 늘리니까 오른쪽으로 더 짤림, 4번째걸 늘리니까 왼쪽이 더 많이 보임
+        "output_image_1_dname.jpg": (1450, 2350, 1550, 2630), #약 1
+        "output_image_1_dose.jpg": (1450, 1200, 1550, 1345),
+        "output_image_1_numb.jpg": (1450, 1100, 1550, 1190),
+        "output_image_1_days.jpg": (1450, 1000, 1550, 1050),
+        "output_image_2_dname.jpg": (1550, 2350, 1650, 2630), #약 2
+        "output_image_2_dose.jpg": (1550, 1200, 1650, 1345),
+        "output_image_2_numb.jpg": (1550, 1100, 1650, 1190),
+        "output_image_2_days.jpg": (1550, 1000, 1650, 1050),
+        "output_image_3_dname.jpg": (1650, 2262, 1720, 2488), #약 3 세번째걸 늘리면 아래로 더 보임
+        "output_image_3_dose.jpg": (1650, 1200, 1750, 1345),
+        "output_image_3_numb.jpg": (1650, 1100, 1720, 1190),
+        "output_image_3_days.jpg": (1650, 1000, 1750, 1050),
+        "output_image_4_dname.jpg": (1750, 2359, 1850, 2630), #약 4
+        "output_image_4_dose.jpg": (1750, 1200, 1850, 1345),
+        "output_image_4_numb.jpg": (1750, 1100, 1850, 1190),
+        "output_image_4_days.jpg": (1750, 1000, 1810, 1050),
+    }
+
+
+    blur_strengths = {
+        "output_image_name.jpg": 1.5,  # 예시로 강도를 2.0으로 설정
+        "output_image_day.jpg": 1.5,
+        "output_image_1_dname.jpg": 1.5, #약 1
+        "output_image_1_dose.jpg" : 1.5,
+        "output_image_1_numb.jpg": 0,
+        "output_image_1_days.jpg": 0.5,
+        "output_image_2_dname.jpg": 1.5, #약 2
+        "output_image_2_dose.jpg": 1.5,
+        "output_image_2_numb.jpg": 0,
+        "output_image_2_days.jpg":0 ,
+        "output_image_3_dname.jpg": 1.5, #약 3 세번째걸 늘리면 아래로 더 보임
+        "output_image_3_dose.jpg": 1.5,
+        "output_image_3_numb.jpg": 1,
+        "output_image_3_days.jpg": 1.5,
+        "output_image_4_dname.jpg": 1.5, #약 4
+        "output_image_4_dose.jpg": 1.7,
+        "output_image_4_numb.jpg": 0,
+        "output_image_4_days.jpg": 1.5,
+    }
+
+    extract_and_rotate_images(input_image_path, output_paths_and_coords, blur_strengths)
+
+
+
+image_paths = [
+    'C:/ocr/output_image_4_days.jpg',
+    'C:/ocr/output_image_4_numb.jpg',
+    'C:/ocr/output_image_3_days.jpg',
+    'C:/ocr/output_image_3_numb.jpg',
+    'C:/ocr/output_image_2_days.jpg',
+    'C:/ocr/output_image_2_numb.jpg',
+    'C:/ocr/output_image_1_days.jpg',
+    'C:/ocr/output_image_1_numb.jpg',
+]
+
+# 각 이미지 파일에 대해 반복
+for image_path in image_paths:
+    output_path1 = image_path.replace('.jpg', '.txt')
+    output_path = output_path1[:7] + "sample_" + output_path1[7:]
+
+    # 이미지를 그레이스케일로 불러옴
+    image = cv2.imread(image_path, 0)
+
+    # 이미지에 Thresholding 적용
+    _, thresholded = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+
+    # 이미지에서 텍스트 추출
+    text = pytesseract.image_to_string(thresholded, config="--psm 13")
+
+    # 추출된 텍스트를 파일에 저장
+    with open(output_path, 'w', encoding='utf-8') as output_file:
+        output_file.write(text)
+
+print("이미지 편집, 회전, 텍스트 추출 및 저장이 완료되었습니다.")
